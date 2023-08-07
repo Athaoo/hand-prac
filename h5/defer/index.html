@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body>
+		<script async src="../a.js"></script>
+		<script async src="../d.js"></script>
+		<script src="../c.js"></script>
+		<script defer src="../b.js"></script>
+		<script>
+      window.addEventListener('load', () => {
+        console.log(`🚀 -> file: index.html:16 -> document.addEventListener -> 'onload':`, 'onload')
+      })
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log(`🚀 -> file: index.html:18 -> document.addEventListener -> 'DOMContentLoaded':`, 'DOMContentLoaded')
+      })
+    </script>
+	</body>
+</html>

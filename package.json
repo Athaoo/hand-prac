@@ -1,0 +1,9 @@
+{
+	"name": "hand-prac",
+	"version": "1.0.0",
+	"main": "index.js",
+	"type": "module",
+	"repository": "https://github.com/Athaoo/hand-prac.git",
+	"author": "阿骚 <2820911435@qq.com>",
+	"license": "MIT"
+}
