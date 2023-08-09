@@ -1,28 +1,28 @@
 const arr1 = [1, 2, 3, 12, 6, 4, 5, 5, 6, 7, 8, 9]
 
-function binarySearchImpl(arr, target, left, right) {
-	if (left > right) return null
-	if (left == right) return arr[left] === target ? left : null
+export function binary(arr, target) {
+	let left = 0,
+		right = arr.length - 1
 
-	const mid = (left + right) >> 1
+	while (left <= right) {
+		const mid = Math.floor((left + right) / 2)
+		// const mid = Math.floor((left + (right - left)) >> 1)
+		console.log(`🚀 -> binary -> arr[mid]:`, mid, arr[mid])
+		if (arr[mid] == target) {
+			return mid
+		} else if (arr[mid] < target) {
+			left = mid + 1
+		} else if (arr[mid] > target) {
+			right = mid - 1
+		}
+	}
 
-	const leftRes = binarySearchImpl(arr, target, left, mid)
-	if (leftRes !== null) return leftRes
-
-	const rightRes = binarySearchImpl(arr, target, mid, right)
-	if (rightRes !== null) return rightRes
-}
-
-export function binarySearch(arr, target) {
-	const left = 0,
-		right = arr.length
-
-	return binarySearchImpl(arr, target, 0, arr.length)
+	return null
 }
 
 const test = () => {
-	binarySearch(arr1, 12)
-	console.log(`🚀 -> test -> binarySearch(arr1, 12):`, binarySearch(arr1, 12))
+	arr1.sort((a, b) => a - b)
+	console.log(`🚀 -> test:`, binary(arr1, 12))
 }
 
 test()
