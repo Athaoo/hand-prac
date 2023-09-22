@@ -1,0 +1,138 @@
+html,
+body {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+}
+
+.iconfont {
+	font-family: 'iconfont' !important;
+	font-size: 16px;
+	font-style: normal;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.icon-container {
+	display: flex;
+	flex: 1;
+}
+
+#root {
+	position: relative;
+	top: 10px;
+	left: 40%;
+	width: 800;
+	list-style: none;
+}
+
+#root,
+#root .iconfont {
+	font-size: 1.25rem !important;
+}
+
+#segRoot,
+#segRoot .iconfont {
+	font-size: 3rem !important;
+}
+
+.jz-tree-list input[type='checkbox'] {
+	display: block;
+	width: 1.5rem;
+	flex: 1;
+}
+
+.jz-tree-list .iconfont {
+	cursor: pointer;
+	color: #409eff;
+}
+
+.jz-tree-list .iconfont:is(.gray) {
+	color: #8b8b8b;
+}
+
+.jz-tree-list .iconfont:hover {
+	color: #6db0f3;
+}
+
+.jz-tree-list .ul,
+.li {
+	padding: 0;
+	list-style: none;
+}
+
+.jz-tree-list .ul {
+	/* 避免撑开grid */
+	min-height: 0;
+}
+
+.jz-tree-list .li {
+	display: flex;
+	flex-direction: row;
+	cursor: default;
+}
+
+.jz-tree-list .li {
+	display: flex;
+	flex-direction: column;
+}
+
+.jz-tree-list .li-head {
+	position: relative;
+	display: flex;
+	flex-direction: row;
+	transition: background-color 0.1s ease-in-out;
+}
+
+.jz-tree-list .li-head:hover {
+	background-color: #fafafa;
+}
+
+.jz-tree-list .li-head:is(.selected) {
+	background-color: #f5f7fa;
+}
+
+.jz-tree-list .li-pre {
+	display: flex;
+	flex-direction: row;
+}
+
+.jz-tree-list .li-body {
+	display: flex;
+	flex-direction: column;
+}
+.jz-tree-list .li-end {
+	width: fit-content;
+	display: flex;
+	flex-direction: row;
+}
+
+.jz-tree-list .li-arrow {
+	display: inline-block;
+	min-width: 1rem;
+	transition: all 0.15s ease-in-out;
+}
+
+.jz-tree-list .li-arrow-block {
+	display: inline-block;
+	width: 1rem;
+}
+
+.jz-tree-list .li-inner {
+	display: grid;
+	grid-template-rows: 1fr;
+	margin-left: 1rem;
+	transition: all 0.2s ease-in-out;
+	overflow-y: hidden;
+}
+
+.jz-tree-list .li-inner:is(.folded) {
+	grid-template-rows: 0fr;
+	overflow-y: hidden;
+}
+
+.jz-tree-list .icon-anno3d-right-outlined:not(.folded) {
+	transform: rotate(90deg);
+}
