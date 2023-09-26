@@ -260,19 +260,6 @@ const __VirsualTree = (function () {
 
 		function onClose() {}
 
-		/**
-		 *
-		 * @param {string} nodeId
-		 * @returns {key: string}
-		 */
-		function parseId(nodeId) {
-			return nodeId.split('jzTree')[1]
-		}
-
-		function parseKeyToId(key) {
-			return `jzTree${key}`
-		}
-
 		function updateShowingStart(flatData, start) {
 			const end = Math.min(start + showCount, flatData?.length ?? 0)
 			if (end < start) {
@@ -472,7 +459,7 @@ const __VirsualTree = (function () {
 				const switcher = target.closest('.tree-node-switcher')
 				const title = target.closest('.tree-node-title')
 
-				const key = parseId(node.id)
+				const key = parseIdToKey(node.id)
 
 				if (switcher) {
 					// 点击到折叠图标
@@ -571,6 +558,19 @@ const __VirsualTree = (function () {
 	}
 
 	/**
+	 *
+	 * @param {string} nodeId
+	 * @returns {key: string}
+	 */
+	function parseIdToKey(nodeId) {
+		return nodeId.split('jzTree')[1]
+	}
+
+	function parseKeyToId(key) {
+		return `jzTree${key}`
+	}
+
+	/**
 	 * @typedef {object} CreatePluginParams
 	 * @property {OnListCreated|undefined} onListCreated
 	 * @property {CustomNodePreffix|undefined} customNodePreffix
@@ -605,9 +605,69 @@ const __VirsualTree = (function () {
 		})
 	}
 
+	const createCheckboxPlugin = function () {
+		const checked = new Set()
+
+		// 由于是字符串形式创建dom，且为了减少事件监听，只在click这里处理checkbox的change
+		const onListCreated = ($list, $root, data) => {
+			$root.addEventListener('click', (ev) => {
+				const target = ev.target
+
+				const $checkbox = target.closest('.tree-default-plugin-checkbox')
+
+				if ($checkbox === target) {
+					const $node = target.closest('.tree-node')
+					const key = parseIdToKey($node.id)
+
+					// 注意，冒泡到root时checkbox已经变状态了
+					if ($checkbox.checked) {
+						checked.add(key)
+					} else {
+						checked.delete(key)
+					}
+				}
+			})
+		}
+
+		const customNodePreffix = (data) => {
+			if (data.level === 0) {
+				return `
+						<input
+							class="tree-default-plugin-checkbox"
+							type="checkbox"
+							${checked.has(data?.key) ? ' checked' : ''}
+						/>
+					`
+			} else {
+				return ''
+			}
+		}
+
+		const customNodeSuffix = (data) => {
+			return `<i class="iconfont icon-anno3d-minus-circle-outlined"></i>`
+		}
+
+		const getAllChecked = () => checked
+
+		return {
+			getAllChecked,
+			plugin: createPlugin({
+				onListCreated,
+				customNodePreffix,
+				customNodeSuffix,
+			}),
+		}
+	}
+
+	// 提供了一些默认可选插件以供参考
+	const defaultPlugins = {
+		createCheckboxPlugin,
+	}
+
 	return {
 		createTree,
 		createPlugin,
+		defaultPlugins,
 	}
 })()
 
