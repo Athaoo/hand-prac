@@ -36,8 +36,41 @@ const __VirsualTree = (function () {
 	function createTree(registerParams, initData = [], listPlugins = []) {
 		const { root, itemHeight } = registerParams
 
-		/**@type {VTreeNode[]} */
+		/**
+		 * 很大一部分情况只是点点展开折叠，不涉及数据更新的情况下无需变动，缓存一下
+		 * @type {VTreeNode[]}
+		 */
+		let _curTreeData
+
+		/**
+		 * 当前的完整拍平数据
+		 * @type {FlatVTreeNode[]}
+		 */
 		let _curData = []
+
+		/**
+		 * 当前显示部分的数据
+		 * @type {FlatVTreeNode[]}
+		 */
+		let _showingData
+
+		/**
+		 * 当前showingData在curData中的起点
+		 * @type {number}
+		 */
+		let _curStart
+
+		/**
+		 * 当前showingData在curData中的终点
+		 * @type {number}
+		 */
+		let _curEnd
+
+		/**
+		 * 缓冲区大小
+		 */
+		const bufferSize = 2
+
 		let _$root = root
 
 		root.innerHTML = `
@@ -52,20 +85,30 @@ const __VirsualTree = (function () {
 		let _$scroll = root.querySelector(`.tree-scroll`)
 		let _$list = root.querySelector(`.tree-list`)
 
+		// 初始化过列表dom后就可以复用dom只改class和内容了
+		let ifDomInited = false
+
 		let rootHeight = root.offsetHeight
 		let rootWidth = root.offsetWidth
 
 		let iHeight = itemHeight
-		let showCount = Math.floor(rootHeight / iHeight)
+		let showCount = Math.floor(rootHeight / iHeight) + bufferSize
+		// let showCount = Math.floor(rootHeight / iHeight)
+		_$list.style.height = `${showCount * iHeight}px`
 
 		let $select = null
 		let selectId = ''
 
-		let folds = new Map()
+		/**
+		 * 处于展开状态的
+		 * @type {Set<key>}
+		 */
+		let openNodes = new Set()
 
 		let plugins = []
 
 		bindRoot(root)
+		_bindDefaultEvent()
 		_bindScrollEv()
 
 		if (listPlugins?.length) {
@@ -73,7 +116,7 @@ const __VirsualTree = (function () {
 		}
 
 		if (initData?.length) {
-			flush(initData)
+			flush(0, initData)
 		}
 
 		return {
@@ -84,15 +127,79 @@ const __VirsualTree = (function () {
 
 		//-------------------------------------- api------------------------------------------
 
-		function flush(data) {
+		function flush(start = 0, originTreeData) {
+			if (originTreeData !== undefined) {
+				try {
+					_curTreeData = originTreeData
+					_curData = _flatTreeData(originTreeData)
+					_updateShowingStart(_curData, start)
+				} catch (e) {
+					console.error(e.stack)
+					return
+				}
+			}
+
+			_updateScrollHeight()
+
+			if (!ifDomInited) {
+				firstFlushImpl(start)
+			} else {
+				flushImpl(start)
+			}
+		}
+
+		function flushImpl(start = 0) {
+			const children = _$list?.children
+			const data = _curData
+
+			if (!children?.length || !data?.length) return
+			if (!data[start + showCount]) return
+
+			try {
+				for (let i = 0; i <= showCount; i++) {
+					const { key, level, title } = data[start + i]
+					const $child = children[i]
+					const $switcher = $child.querySelector('.tree-node-switcher')
+
+					// 更新id
+					$child.id = parseKeyToId(key)
+
+					// 更新选中状态
+					$child.classList.remove('selected')
+					if (selectId === key) {
+						$child.classList.add('selected')
+					}
+
+					// 更新switcher
+					if (openNodes.has(key)) {
+						$child.classList.remove('tree-switcher-close')
+						$child.classList.add('tree-switcher-open')
+					} else {
+						$child.classList.remove('tree-switcher-open')
+						$child.classList.add('tree-switcher-close')
+					}
+
+					// 更新缩进
+					const $indent = $child.querySelector('.tree-node-indent')
+					if ($indent?.children && level !== $indent.children.length - 1) {
+						$indent.innerHTML = _createIndentsDomStr(level)
+					}
+
+					// 更新title
+					const $title = $child.querySelector('.tree-node-title')
+					$title.textContent = title
+				}
+			} catch (e) {
+				console.error(e.stack)
+				return
+			}
+		}
+
+		function firstFlushImpl() {
 			let listInner
 
 			try {
-				_curData = _flatTreeData(data)
-				console.log(`🚀 -> flush -> _curData:`, _curData)
-
-				_updateScrollHeight()
-				listInner = _createListDomStr(0)
+				listInner = _createListDomStr()
 			} catch (e) {
 				console.error(e.stack)
 				return
@@ -102,8 +209,32 @@ const __VirsualTree = (function () {
 
 			_$list.innerHTML = ''
 			_$list.innerHTML = listInner
+			ifDomInited = true
 
 			// applyPlugins(plugins, $list, _$root, 'onListCreated')
+		}
+
+		function onOpen() {}
+
+		function onClose() {}
+
+		function parseId(nodeId) {
+			return nodeId.split('jzTree_')[1]
+		}
+
+		function parseKeyToId(key) {
+			return `jzTree_${key}`
+		}
+
+		function _updateShowingStart(flatData, start) {
+			const end = Math.min(start + showCount, flatData?.length ?? 0)
+			if (end < start) {
+				console.warn(`Invalid show data: start: ${start}, end: ${end}`)
+				return
+			}
+
+			_curStart = start
+			_curEnd = end
 		}
 
 		/**
@@ -123,7 +254,8 @@ const __VirsualTree = (function () {
 					const cur = stack.pop()
 
 					// 为了先序，需要反向将children入栈，以确保首个children第一个出栈，同时记录树层级level
-					if (cur?.children?.length) {
+					// 且非折叠状态的节点的子节点才能参与flat
+					if (cur?.children?.length && openNodes.has(cur.key)) {
 						for (let j = cur.children.length - 1; j >= 0; j--) {
 							const child = cur.children[j]
 							stack.push({ ...child, level: cur.level + 1 })
@@ -144,47 +276,107 @@ const __VirsualTree = (function () {
 			return _$root
 		}
 
+		function _bindDefaultEvent() {
+			const root = _$root
+			root.addEventListener('click', function (event) {
+				const target = event.target
+
+				const node = target.closest('.tree-node') // 获取包含箭头元素的父列表项
+
+				// title和switcher是互斥的，二者不会同时非空
+				const switcher = target.closest('.tree-node-switcher')
+				const title = target.closest('.tree-node-title')
+
+				const id = parseId(node.id)
+
+				if (switcher) {
+					if (node.classList?.contains('tree-switcher-close')) {
+						openNode(id)
+					} else {
+						closeNode(id)
+					}
+				} else if (title) {
+				}
+			})
+		}
+
 		function _bindScrollEv() {
 			const scroll = _$scroll,
 				container = _$container,
 				list = _$list
 
 			const scrollHandler = throttleWithRAF((ev) => {
-				const start = Math.floor(container.scrollTop / iHeight)
+				let newStart = Math.floor(container.scrollTop / iHeight)
 
-				if (start >= _curData.length - showCount) {
-					return
+				if (newStart > _curData.length - showCount) {
+					newStart = _curData.length - showCount - 1
+				}
+				if (newStart !== _curStart) {
+					const offsetY = container.scrollTop - (container.scrollTop % iHeight)
+
+					list.style.transform = `translate3d(0, ${offsetY}px, 0)`
 				}
 
-				const offsetY = container.scrollTop - (container.scrollTop % iHeight)
 
-				// list.style.marginTop = `${offsetY}px`
-				list.style.transform = `translate3d(0, ${offsetY}px, 0)`
-
-				const inner = _createListDomStr(start)
-				list.innerHTML = inner
+				_updateShowingStart(_curData, newStart)
+				flushImpl(newStart)
 			})
 
 			container.addEventListener('scroll', scrollHandler)
 		}
 
-		function _createListDomStr(start, bufferSize = 4) {
-			const max = Math.min(start + showCount + bufferSize, _curData?.length ?? 0)
+		function _createListDomStr() {
+			if (_curStart > _curEnd) {
+				return
+			}
+
+			const data = _curData
 
 			let str = ''
 
-			for (let i = start; i < max; i++) {
+			for (let i = _curStart; i <= _curEnd; i++) {
+				const { level, title, key } = data[i]
+
+				// 下拉箭头
+				let switcher,
+					nodeSwitcherClass = ` tree-switcher-close`
+				if (data[i]?.children) {
+					if (openNodes.has(key)) {
+						nodeSwitcherClass = ` tree-switcher-open`
+					}
+					switcher = `<i class="iconfont icon-anno3d-right-outlined"></i>`
+				} else {
+					switcher = ''
+				}
+
 				str += `
           <div
-            id="jzTree_${_curData[i].title}"
-            class="tree-list-item"
+            id="${parseKeyToId(key)}"
+            class="tree-node${nodeSwitcherClass}"
             style="height: ${iHeight}px"
             >
-            ${_curData[i].title}
+						<span class="tree-node-indent">
+							${_createIndentsDomStr(level)}
+						</span>
+						<span class="tree-node-switcher">
+							${switcher}
+						</span>
+            <span class="tree-node-title">
+							<span>${title}</span>
+						</span>
           </div>
         `
 			}
 			return str
+		}
+
+		function _createIndentsDomStr(level = 0) {
+			const indentTemplate = `<span class="tree-node-indent-unit"></span>`
+			let indents = indentTemplate
+			for (let j = 0; j < level; j++) {
+				indents += indentTemplate
+			}
+			return indents
 		}
 
 		function _updateScrollHeight() {
@@ -207,6 +399,46 @@ const __VirsualTree = (function () {
 			}
 
 			return throttledFunction
+		}
+
+		function openNode(key) {
+			if (key === undefined || key === null) {
+				console.warn(`Invalid key: ${key}`)
+				return
+			}
+
+			if (openNodes.has(key)) {
+				return
+			}
+
+			openNodes.add(key)
+			flush(_curStart, _curTreeData)
+		}
+
+		function closeNode(key) {
+			if (key === undefined || key === null) {
+				console.warn(`Invalid key: ${key}`)
+				return
+			}
+
+			if (!openNodes.has(key)) {
+				return
+			}
+
+			openNodes.delete(key)
+			flush(_curStart, _curTreeData)
+		}
+
+		function selectNode(id) {
+			if (selectId === id) return
+			const node = _$list.querySelector(`#jzTree_${id}`)
+			node?.classList.add('selected')
+		}
+
+		function unselectNode(id) {
+			if (selectId === id) return
+			const node = _$list.querySelector(`#jzTree_${id}`)
+			node?.classList.remove('selected')
 		}
 
 		//-------------------------------------- inner-----------------------------------------
