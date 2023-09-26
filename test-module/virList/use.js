@@ -22,7 +22,7 @@ const checkboxPlugin = (function() {
 })()
 
 const root = document.querySelector(`#virListRoot`)
-const mock = generateRandomTreeListData(50, 4)
+const mock = generateRandomTreeListData(100, 5)
 console.log(`🚀 -> mock:`, mock)
 
 const tree = createTree({

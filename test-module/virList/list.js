@@ -25,7 +25,7 @@
  */
 
 /**
- * 性能优先的虚拟滚动的树形组件
+ * 性能优先的虚拟滚动的树形组件,支持超大数据量及很深层的树形结构
  * 1. 初次渲染采用innerHtml，后续渲染时复用dom，仅修改显示部分的dom信息
  * 2. 采用插件形式保持业务拓展性，目前支持每个node的前缀及后缀用dom字符串形式嵌入拓展插件，兼顾性能
  * 3. 插件内容在每次渲染时会重新刷新，需要在自定义插件内完全控制每次刷新显示的dom
@@ -106,7 +106,7 @@ const __VirsualTree = (function () {
 		$list.style.height = `${showCount * iHeight}px`
 
 		let $select = null
-		let selectId = ''
+		let selectKey = ''
 
 		/**
 		 * 处于展开状态的
@@ -120,7 +120,7 @@ const __VirsualTree = (function () {
 		let plugins = []
 
 		bindRoot(root)
-		bindDefaultEvent()
+		bindDefaultRootEvent()
 		bindScrollEv()
 
 		if (listPlugins?.length) {
@@ -135,6 +135,10 @@ const __VirsualTree = (function () {
 			flush,
 			bindRoot,
 			getRoot,
+			openNode,
+			closeNode,
+			selectNode,
+			unselectNode,
 		}
 
 		//-------------------------------------- api------------------------------------------
@@ -181,7 +185,7 @@ const __VirsualTree = (function () {
 
 					// 更新选中状态
 					$child.classList.remove('selected')
-					if (selectId === key) {
+					if (selectKey === key) {
 						$child.classList.add('selected')
 					}
 
@@ -248,6 +252,11 @@ const __VirsualTree = (function () {
 
 		function onClose() {}
 
+		/**
+		 *
+		 * @param {string} nodeId
+		 * @returns {key: string}
+		 */
 		function parseId(nodeId) {
 			return nodeId.split('jzTree')[1]
 		}
@@ -304,60 +313,6 @@ const __VirsualTree = (function () {
 
 		function getRoot() {
 			return $root
-		}
-
-		function bindDefaultEvent() {
-			const root = $root
-			root.addEventListener('click', function (event) {
-				const target = event.target
-
-				const node = target.closest('.tree-node') // 获取包含箭头元素的父列表项
-
-				// title和switcher是互斥的，二者不会同时非空
-				const switcher = target.closest('.tree-node-switcher')
-				const title = target.closest('.tree-node-title')
-
-				const id = parseId(node.id)
-
-				if (switcher) {
-					// 目的是只在点击时触发目标动画，其他时候比如展开折叠是时避免其他元素被动触发动画
-					switcher.style.transition = `transform 0.3s`
-					switcher.addEventListener('transitionend', () => {
-						switcher.style.transition = `none`
-					}, { once: true })
-
-					if (node.classList?.contains('tree-switcher-close')) {
-						openNode(id)
-					} else {
-						closeNode(id)
-					}
-				} else if (title) {
-				}
-			})
-		}
-
-		function bindScrollEv() {
-			const scroll = $scroll,
-				container = $container,
-				list = $list
-
-			const scrollHandler = throttleWithRAF((ev) => {
-				let newStart = Math.floor(container.scrollTop / iHeight)
-
-				if (newStart > curData.length - showCount) {
-					newStart = curData.length - showCount - 1
-				}
-				if (newStart !== curStart) {
-					const offsetY = container.scrollTop - (container.scrollTop % iHeight)
-
-					list.style.transform = `translate3d(0, ${offsetY}px, 0)`
-				}
-
-				updateShowingStart(curData, newStart)
-				flushImpl(newStart)
-			})
-
-			container.addEventListener('scroll', scrollHandler)
 		}
 
 		function createListDomStr() {
@@ -424,34 +379,6 @@ const __VirsualTree = (function () {
 			return node?.children?.length ? `<i class="iconfont icon-anno3d-right-outlined"></i>` : ''
 		}
 
-		/**
-		 * @param {FlatVTreeNode} node
-		 * @returns {string}
-		 */
-		function createPreffixsDomStr(node) {
-			let res = ''
-			for (const { customNodePreffix } of plugins) {
-				if (!(customNodePreffix instanceof Function)) continue
-
-				res += customNodePreffix(node)
-			}
-			return res
-		}
-
-		/**
-		 * @param {FlatVTreeNode} node
-		 * @returns {string}
-		 */
-		function createSuffixsDomStr(node) {
-			let res = ''
-			for (const { customNodeSuffix } of plugins) {
-				if (!(customNodeSuffix instanceof Function)) continue
-
-				res += customNodeSuffix(node)
-			}
-			return res
-		}
-
 		function updateScrollHeight() {
 			$scroll.style.minHeight = `${curData.length * iHeight}px`
 		}
@@ -502,19 +429,121 @@ const __VirsualTree = (function () {
 			flush(curStart, curTreeData)
 		}
 
-		function selectNode(id) {
-			if (selectId === id) return
-			const node = $list.querySelector(`#jzTree${id}`)
+		function selectNode(key) {
+			if (selectKey === key) return
+			const oldSelecteNode = $list.querySelector(`#${parseKeyToId(selectKey)}`)
+			const node = $list.querySelector(`#${parseKeyToId(key)}`)
+
+			oldSelecteNode?.classList.remove('selected')
 			node?.classList.add('selected')
+
+			selectKey = key
 		}
 
-		function unselectNode(id) {
-			if (selectId === id) return
-			const node = $list.querySelector(`#jzTree${id}`)
+		function unselectNode(key) {
+			if (selectKey === key) return
+			const node = $list.querySelector(`#${parseKeyToId(key)}`)
 			node?.classList.remove('selected')
 		}
 
-		//-------------------------------------- plugins-----------------------------------------
+		//--------------------------------------events-----------------------------------------
+
+		function bindDefaultRootEvent() {
+			const root = $root
+			root.addEventListener('click', function (event) {
+				const target = event.target
+				console.log(`🚀 -> target:`, target)
+
+				const node = target.closest('.tree-node') // 获取包含箭头元素的父列表项
+				if (!node) {
+					// 实践表明，按下和抬起不在同一个node时会引起选不到
+					return
+				}
+
+				// title和switcher是互斥的，二者不会同时非空
+				const switcher = target.closest('.tree-node-switcher')
+				const title = target.closest('.tree-node-title')
+
+				const key = parseId(node.id)
+
+				if (switcher) {
+					// 点击到折叠图标
+					// 目的是只在点击时触发目标动画，其他时候比如展开折叠是时避免其他元素被动触发动画
+					switcher.style.transition = `transform 0.3s`
+					switcher.addEventListener(
+						'transitionend',
+						() => {
+							switcher.style.transition = `none`
+						},
+						{ once: true },
+					)
+
+					if (node.classList?.contains('tree-switcher-close')) {
+						openNode(key)
+					} else {
+						closeNode(key)
+					}
+				} else if (title || target === node) {
+					// 点击title或其他空白处时
+					selectNode(key)
+					openNode(key)
+				}
+			})
+		}
+
+		function bindScrollEv() {
+			const scroll = $scroll,
+				container = $container,
+				list = $list
+
+			const scrollHandler = throttleWithRAF((ev) => {
+				let newStart = Math.floor(container.scrollTop / iHeight)
+
+				if (newStart > curData.length - showCount) {
+					newStart = curData.length - showCount - 1
+				}
+				if (newStart !== curStart) {
+					const offsetY = container.scrollTop - (container.scrollTop % iHeight)
+
+					list.style.transform = `translate3d(0, ${offsetY}px, 0)`
+				}
+
+				updateShowingStart(curData, newStart)
+				flushImpl(newStart)
+			})
+
+			container.addEventListener('scroll', scrollHandler)
+		}
+
+		//--------------------------------------plugins-----------------------------------------
+
+		/**
+		 * @param {FlatVTreeNode} node
+		 * @returns {string}
+		 */
+		function createPreffixsDomStr(node) {
+			let res = ''
+			for (const { customNodePreffix } of plugins) {
+				if (!(customNodePreffix instanceof Function)) continue
+
+				res += customNodePreffix(node)
+			}
+			return res
+		}
+
+		/**
+		 * @param {FlatVTreeNode} node
+		 * @returns {string}
+		 */
+		function createSuffixsDomStr(node) {
+			let res = ''
+			for (const { customNodeSuffix } of plugins) {
+				if (!(customNodeSuffix instanceof Function)) continue
+
+				res += customNodeSuffix(node)
+			}
+			return res
+		}
 
 		/**
 		 * @param {listPlugins} plugins
@@ -528,7 +557,6 @@ const __VirsualTree = (function () {
 			}
 		}
 	}
-
 
 	/**
 	 * @typedef {object} CreatePluginParams
@@ -564,7 +592,6 @@ const __VirsualTree = (function () {
 			customNodeSuffix,
 		})
 	}
-
 
 	return {
 		createTree,
