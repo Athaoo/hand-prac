@@ -170,7 +170,18 @@ const __VirsualTree = (function () {
 						$child.classList.add('selected')
 					}
 
-					// 更新switcher
+					// 更新switcher 为减少dom更新 这里细致比较以剪枝
+					// 有箭头但node内没children或是无箭头但node有children
+					// 即当前dom内的switcher和node的children不匹配时再更新
+					if ($switcher) {
+						if (
+							(!$switcher.children.length && data[start + i]?.children?.length) ||
+							($switcher.children.length && !data[start + i]?.children?.length)
+						) {
+							$switcher.innerHTML = _createSwitcherInnerDomStr(data[start + i])
+						}
+					}
+
 					if (openNodes.has(key)) {
 						$child.classList.remove('tree-switcher-close')
 						$child.classList.add('tree-switcher-open')
@@ -317,7 +328,6 @@ const __VirsualTree = (function () {
 					list.style.transform = `translate3d(0, ${offsetY}px, 0)`
 				}
 
-
 				_updateShowingStart(_curData, newStart)
 				flushImpl(newStart)
 			})
@@ -338,15 +348,11 @@ const __VirsualTree = (function () {
 				const { level, title, key } = data[i]
 
 				// 下拉箭头
-				let switcher,
-					nodeSwitcherClass = ` tree-switcher-close`
-				if (data[i]?.children) {
-					if (openNodes.has(key)) {
-						nodeSwitcherClass = ` tree-switcher-open`
-					}
-					switcher = `<i class="iconfont icon-anno3d-right-outlined"></i>`
-				} else {
-					switcher = ''
+				const switcher = _createSwitcherInnerDomStr(data[i])
+
+				let nodeSwitcherClass = ` tree-switcher-close`
+				if (data[i]?.children && openNodes.has(key)) {
+					nodeSwitcherClass = ` tree-switcher-open`
 				}
 
 				str += `
@@ -381,6 +387,15 @@ const __VirsualTree = (function () {
 
 		function _updateScrollHeight() {
 			_$scroll.style.minHeight = `${_curData.length * iHeight}px`
+		}
+
+		/**
+		 *
+		 * @param {FlatVTreeNode} node
+		 * @returns {string}
+		 */
+		function _createSwitcherInnerDomStr(node) {
+			return node?.children?.length ? `<i class="iconfont icon-anno3d-right-outlined"></i>` : ''
 		}
 
 		function throttleWithRAF(callback) {
