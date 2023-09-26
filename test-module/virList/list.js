@@ -15,8 +15,8 @@
 
 /**
  * list创建过程会触发不同过程的钩子，并携带对应阶段的上下文，这时需要在其中嵌入生命周期
- * customNodePreffix: 创建和更新节点阶段在<位置处于下拉图标之前>的创建自定义前缀dom, 要求必须用tree-node-preffix的class类的span包裹你的preffix
- * customNodeSuffix: 创建和更新节点阶段在<位置处于title之后>的创建自定义前缀dom, 要求必须用tree-node-suffix的class类的span包裹你的suffix
+ * customNodePreffix: 创建和更新节点阶段在<位置处于下拉图标之前>的创建自定义前缀dom
+ * customNodeSuffix: 创建和更新节点阶段在<位置处于title之后>的创建自定义前缀dom
  * 例如onListCreated里包装列表item的dom、在root代理绑定事件代理、在onListDestroy解绑事件
  * @typedef {'onListCreated'|'customNodePreffix'} ListHooks
  * @typedef {(data: FlatVTreeNode) => string} CustomNodePreffix
@@ -44,6 +44,14 @@ const __VirsualTree = (function () {
 	 */
 	function createTree(registerParams, initData = [], listPlugins = []) {
 		const { root, itemHeight } = registerParams
+
+		if (typeof itemHeight !== 'number' || itemHeight < 0) {
+			throw Error(`Invalid item height: ${itemHeight}`)
+		}
+
+		if (!root instanceof HTMLElement) {
+			throw Error(`Invalid root element: ${root}`)
+		}
 
 		/**
 		 * 很大一部分情况只是点点展开折叠，不涉及数据更新的情况下无需变动，缓存一下
@@ -486,7 +494,11 @@ const __VirsualTree = (function () {
 				} else if (title || target === node) {
 					// 点击title或其他空白处时
 					selectNode(key)
-					openNode(key)
+					if (node.classList?.contains('tree-switcher-close')) {
+						openNode(key)
+					} else {
+						closeNode(key)
+					}
 				}
 			})
 		}
