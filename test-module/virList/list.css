@@ -50,9 +50,11 @@
 .tree-container .tree-node-switcher {
   min-width: 1rem;
   cursor: pointer;
-  transition: transform 0.3s;
 }
 
 .tree-container .tree-node:is(.tree-switcher-open) .tree-node-switcher {
   transform: rotate(90deg);
+}
+
+.tree-container .tree-node-preffix, .tree-node-suffix {
 }
