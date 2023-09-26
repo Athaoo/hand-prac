@@ -17,11 +17,24 @@
  * list创建过程会触发不同过程的钩子，并携带对应阶段的上下文，这时需要在其中嵌入生命周期
  * customNodePreffix: 创建和更新节点阶段在<位置处于下拉图标之前>的创建自定义前缀dom
  * customNodeSuffix: 创建和更新节点阶段在<位置处于title之后>的创建自定义前缀dom
+ * beforeListClicked: 触发点击回调之前, clickedTreeNode是点击到的类为tree-node的元素
+ * onListClicked: 触发点击事件时
  * 例如onListCreated里包装列表item的dom、在root代理绑定事件代理、在onListDestroy解绑事件
  * @typedef {'onListCreated'|'customNodePreffix'} ListHooks
  * @typedef {(data: FlatVTreeNode) => string} CustomNodePreffix
  * @typedef {(data: FlatVTreeNode) => string} CustomNodeSuffix
+ * @typedef {(ev: Event, root: HTMLElement, target: HTMLElement, clickedTreeNode: HTMLElement, key: string) => any} BeforeListClicked
+ * @typedef {(ev: Event, root: HTMLElement, target: HTMLElement, clickedTreeNode: HTMLElement, key: string) => any} OnListClicked
  * @typedef {($list: HTMLElement, $root: HTMLElement, data: FlatVTreeNode[]) => any} OnListCreated
+ */
+
+/**
+ * @typedef {object} CreatePluginParams
+ * @property {OnListCreated|undefined} onListCreated
+ * @property {CustomNodePreffix|undefined} customNodePreffix
+ * @property {CustomNodeSuffix|undefined} customNodeSuffix
+ * @property {BeforeListClicked|undefined} beforeListClicked
+ * @property {onListClicked|undefined} onListClicked
  */
 
 /**
@@ -128,7 +141,7 @@ const __VirsualTree = (function () {
 		let plugins = []
 
 		bindRoot(root)
-		bindDefaultRootEvent()
+		bindRootDefaultClickEvent()
 		bindScrollEv()
 
 		if (listPlugins?.length) {
@@ -443,23 +456,28 @@ const __VirsualTree = (function () {
 
 		//--------------------------------------events-----------------------------------------
 
-		function bindDefaultRootEvent() {
+		function bindRootDefaultClickEvent() {
 			const root = $root
 			root.addEventListener('click', function (event) {
 				const target = event.target
-				console.log(`🚀 -> target:`, target)
-
 				const node = target.closest('.tree-node') // 获取包含箭头元素的父列表项
+
 				if (!node) {
 					// 实践表明，按下和抬起不在同一个node时会引起选不到
 					return
 				}
 
-				// title和switcher是互斥的，二者不会同时非空
+				const key = parseIdToKey(node.id)
+				// 点击时title和switcher是互斥的，二者不会同时非空
 				const switcher = target.closest('.tree-node-switcher')
 				const title = target.closest('.tree-node-title')
 
-				const key = parseIdToKey(node.id)
+				// beforeClick钩子
+				for (const { beforeListClicked } of plugins) {
+					if (!(beforeListClicked instanceof Function)) continue
+
+					beforeListClicked(event, root, target, node, key)
+				}
 
 				if (switcher) {
 					// 点击到折叠图标
@@ -486,6 +504,13 @@ const __VirsualTree = (function () {
 					} else {
 						closeNode(key)
 					}
+				}
+
+				// onClicked钩子
+				for (const { onListClicked } of plugins) {
+					if (!(onListClicked instanceof Function)) continue
+
+					onListClicked(event, root, target, node, key)
 				}
 			})
 		}
@@ -514,7 +539,7 @@ const __VirsualTree = (function () {
 			container.addEventListener('scroll', scrollHandler)
 		}
 
-		//--------------------------------------plugins-----------------------------------------
+		//--------------------------------------默认plugins-----------------------------------------
 
 		/**
 		 * @param {FlatVTreeNode} node
@@ -570,12 +595,7 @@ const __VirsualTree = (function () {
 		return `jzTree${key}`
 	}
 
-	/**
-	 * @typedef {object} CreatePluginParams
-	 * @property {OnListCreated|undefined} onListCreated
-	 * @property {CustomNodePreffix|undefined} customNodePreffix
-	 * @property {CustomNodeSuffix|undefined} customNodeSuffix
-	 */
+	//--------------------------------------plugins-----------------------------------------
 
 	class ListPlugin {
 		/**
@@ -586,6 +606,8 @@ const __VirsualTree = (function () {
 			this.onListCreated = callbacks.onListCreated
 			this.customNodePreffix = callbacks.customNodePreffix
 			this.customNodeSuffix = callbacks.customNodeSuffix
+			this.beforeListClicked = callbacks.beforeListClicked
+			this.onListClicked = callbacks.onListClicked
 		}
 	}
 
@@ -597,35 +619,27 @@ const __VirsualTree = (function () {
 		const onListCreated = !!callbacks?.onListCreated ? callbacks.onListCreated : null
 		const customNodePreffix = !!callbacks?.customNodePreffix ? callbacks.customNodePreffix : null
 		const customNodeSuffix = !!callbacks?.customNodeSuffix ? callbacks.customNodeSuffix : null
+		const beforeListClicked = !!callbacks?.beforeListClicked ? callbacks.beforeListClicked : null
+		const onListClicked = !!callbacks?.onListClicked ? callbacks.onListClicked : null
 
 		return new ListPlugin({
 			onListCreated,
 			customNodePreffix,
 			customNodeSuffix,
+			beforeListClicked,
+			onListClicked
 		})
 	}
 
+	/**
+	 * 一个为第0层列表添加<状态可控>的checkbox的插件样例
+	 */
 	const createCheckboxPlugin = function () {
 		const checked = new Set()
 
-		// 由于是字符串形式创建dom，且为了减少事件监听，只在click这里处理checkbox的change
 		const onListCreated = ($list, $root, data) => {
 			$root.addEventListener('click', (ev) => {
 				const target = ev.target
-
-				const $checkbox = target.closest('.tree-default-plugin-checkbox')
-
-				if ($checkbox === target) {
-					const $node = target.closest('.tree-node')
-					const key = parseIdToKey($node.id)
-
-					// 注意，冒泡到root时checkbox已经变状态了
-					if ($checkbox.checked) {
-						checked.add(key)
-					} else {
-						checked.delete(key)
-					}
-				}
 			})
 		}
 
@@ -647,6 +661,28 @@ const __VirsualTree = (function () {
 			return `<i class="iconfont icon-anno3d-minus-circle-outlined"></i>`
 		}
 
+		/**
+		 * 由于是字符串形式创建dom，且为了减少事件监听，只在click这里处理checkbox的change
+		 * @type {OnListClicked}
+		 */
+		const onListClicked = (ev, root, target, node, key) => {
+			const $checkbox = target.closest('.tree-default-plugin-checkbox')
+
+			if ($checkbox === target) {
+				const $node = target.closest('.tree-node')
+				const key = parseIdToKey($node.id)
+				console.log(`🚀 -> onListClicked -> key:`, key)
+
+				console.log(`🚀 -> onListClicked -> $checkbox.checked:`, $checkbox.checked)
+				// 注意，冒泡到root时checkbox已经变状态了
+				if ($checkbox.checked) {
+					checked.add(key)
+				} else {
+					checked.delete(key)
+				}
+			}
+		}
+
 		const getAllChecked = () => checked
 
 		return {
@@ -655,11 +691,14 @@ const __VirsualTree = (function () {
 				onListCreated,
 				customNodePreffix,
 				customNodeSuffix,
+				onListClicked,
 			}),
 		}
 	}
 
-	// 提供了一些默认可选插件以供参考
+	/**
+	 * 提供了一些默认可选插件以供参考
+	 */
 	const defaultPlugins = {
 		createCheckboxPlugin,
 	}
