@@ -28,6 +28,6 @@ function test3() {
 	console.log('test3')
 }
 
-test()
+// test()
 
-test3()
+// test3()
