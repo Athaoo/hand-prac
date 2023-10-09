@@ -8,22 +8,25 @@
 		<link rel="stylesheet" href="./virList/list.css" />
 		<link rel="stylesheet" href="./atom.css" />
 		<link rel="stylesheet" href="./iconfont.css" />
+		<link rel="stylesheet" href="./cascader/cascader.css" />
 		<title>虚拟树</title>
 	</head>
 	<body>
-
 		<div class="flex flex-row w-full h-full">
 			<div id="virListRoot" class="relative">
 				<div class="tree-container">
-					<div class="tree-scroll">
-          </div>
-          <div class="tree-list" style="background-color: violet;"></div>
+					<div class="tree-scroll"></div>
+					<div class="tree-list" style="background-color: violet"></div>
 				</div>
 			</div>
+			<div id="provincesCascaderRoot" class="relative"></div>
+			<div id="foodCascaderRoot" class="relative"></div>
 		</div>
 
 		<script type="module" src="./virList/list.js"></script>
 		<script type="module" src="./virList/mock.js"></script>
 		<script type="module" src="./virList/use.js"></script>
+
+		<script type="module" src="./cascader/use.js"></script>
 	</body>
 </html>
