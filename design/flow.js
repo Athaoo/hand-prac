@@ -13,7 +13,7 @@
 
 // 需要按照 a,b,延迟1秒,c,延迟1秒,d,e, done 的顺序打印
 
-import { createTask } from './test.js'
+import { createTask } from '../promise/test.js'
 
 class Flow {
 	constructor(task) {
