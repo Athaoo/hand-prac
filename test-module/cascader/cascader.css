@@ -12,13 +12,37 @@
 
 .cascader3d-container {
 	box-sizing: border-box;
+  border-radius: 4px;
 }
 
 .cascader3d-container * {
 	box-sizing: inherit;
 }
 
-.cascader3d-input-container input {
+.cascader3d-container ul, li {
+	list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cascader3d-container:has(div:is(:focus)) .cascader3d-selector {
+  border-color: #4096ff;
+}
+
+.cascader3d-selector {
+  border-radius: 0.25rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid #d9d9d9;
+  transition: all 0.3s;
+}
+.cascader3d-selector:has(*:is(:focus))  {
+  border-color: #4096ff;
+}
+.cascader3d-selector:hover {
+  border-color: #4096ff;
+}
+
+.cascader3d-selector .cascader3d-search {
   width: 100%;
   padding: 5px 10px;
   font-size: 14px;
@@ -26,16 +50,27 @@
   background-color: #fff;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  user-select: none;
 }
 
 .cascader3d-body {
-	position: absolute;
 	display: flex;
 	border-radius: 0.4rem;
 	overflow: hidden;
 	box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
 	height: fit-content;
-	min-width: 120px;
+  transition: all 0.2s;
+  transform-origin: top; /* 折叠中心放置为顶部，实现从下往上折叠*/
+  width: fit-content;
+}
+
+.cascader3d-body:is(.body-hidden) {
+  transform: scaleY(0);
+  height: 0;
+  opacity: 0;
 }
 
 .cascader3d-body .cascader3d-menu {
@@ -78,4 +113,8 @@
 
 .cascader3d-menu .tree-node:not(.selected):active {
 	background-color: #e0e0e0;
+}
+
+.cascader3d-menu .tree-node:not(.selected):focus {
+	background-color: #ff0000;
 }

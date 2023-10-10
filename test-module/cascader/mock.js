@@ -226,3 +226,25 @@ export const foodMockData = [
 	},
 	// 全球其他大洲美食
 ]
+
+export function rdmNum(min, max) {
+	return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+export function generateGameNode(depth, idx = 0) {
+	const node = {
+		label: `Node ${depth}-${idx}`,
+		value: `Node ${depth}-${idx}`,
+		children: [],
+	}
+
+	const numChildren = rdmNum(2, 6)
+
+	if (depth < 6) {
+		for (let i = 0; i < numChildren; i++) {
+			node.children.push(generateGameNode(depth + 1, i))
+		}
+	}
+
+	return node
+}

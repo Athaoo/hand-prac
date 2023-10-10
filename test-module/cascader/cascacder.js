@@ -41,6 +41,7 @@ const __Cascader = (function () {
 		let curSelects = []
 
 		let $root
+		let $selector
 		let $input
 		let $body
 
@@ -49,8 +50,8 @@ const __Cascader = (function () {
 		bindRoot(root)
 		root.innerHTML = `
       <div class="cascader3d-container">
-        <div class="cascader3d-input-container">
-          <input value="" readonly/>
+        <div class="cascader3d-selector">
+          <input class="cascader3d-search" value="" readonly/>
         </div>
         <div class="cascader3d-body">
         </div>
@@ -58,7 +59,8 @@ const __Cascader = (function () {
     `
 
 		$body = root.querySelector(`.cascader3d-body`)
-		$input = root.querySelector(`.cascader3d-input-container > input`)
+		$selector = root.querySelector(`.cascader3d-selector`)
+		$input = $selector.querySelector(`input`)
 
 		bindDefaultClickEv()
 
@@ -72,6 +74,7 @@ const __Cascader = (function () {
 			getRoot,
 			updateSelects,
 			dispose,
+      hideBody,
 		}
 
 		function flush(newOriginData = [], selects = []) {
@@ -91,6 +94,8 @@ const __Cascader = (function () {
 
 			$body.innerHTML = levelsStr
 
+      $input.value = stringifySelects(curSelects)
+
       // 选择了叶子节点时
       if (selects.length === renderData.length) {
         $input.value = stringifySelects()
@@ -105,9 +110,9 @@ const __Cascader = (function () {
 					// id唯一表示树节点的id, 不同root下的树节点cas-id会重复
 					// 解决的办法是在自己的root下querySelector就不会获取到重复节点了
 					preLisStr += `
-            <div data-cas-id="${level}-${i}" class="tree-node${isSelected ? ' selected' : ''}">
+            <li data-cas-id="${level}-${i}" class="tree-node${isSelected ? ' selected' : ''}">
               ${node.label}
-            </div>
+            </li>
           `
 
 					return preLisStr
@@ -115,7 +120,7 @@ const __Cascader = (function () {
 
 				return lis !== ''
 					? `
-              <div data-cas-level="${level}" class="cascader3d-menu">${lis}</div>
+              <ul data-cas-level="${level}" class="cascader3d-menu">${lis}</ul>
             `
 					: ''
 			}
@@ -158,8 +163,10 @@ const __Cascader = (function () {
 
       function handler(target) {
         const node = target?.closest('.tree-node')
-        if (!node) return
-
+        if (!node) {
+          handleClickInput(target)
+          return
+        }
 
         const casId = node.dataset.casId
         const [level, idxInsideLevel] = parseCasId(casId)
@@ -174,6 +181,13 @@ const __Cascader = (function () {
         updateSelects(newSelects)
         flushRenderData()
         flushDom()
+      }
+
+      function handleClickInput(target) {
+        const input = target.closest('.cascader3d-search')
+        if (input) {
+          hideBody()
+        }
       }
 
       function parseCasId(casId) {
@@ -194,7 +208,19 @@ const __Cascader = (function () {
 			return $root
 		}
 
-		function dispose() {}
+		function dispose() {
+      $body = null
+      $input = null
+      originData = []
+      curRenderData = []
+
+      $root.innerHTML = ''
+      $root = null
+    }
+
+    function hideBody() {
+      $body.classList?.toggle('body-hidden')
+    }
 	}
 
 	return {
