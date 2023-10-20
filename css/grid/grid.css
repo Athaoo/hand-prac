@@ -1,0 +1,120 @@
+/* grid.css */
+
+.container {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  grid-template-rows: 100px 200px;
+  grid-auto-flow: row dense;
+  gap: 10px;
+}
+
+.item {
+  background-color: #3498db;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.container-named {
+  display: grid;
+  grid-template-columns: [col1] 100px [col2] 200px [col3] 300px;
+  grid-template-rows: [row1] 100px [row2] 200px [row3] 300px;
+  gap: 10px;
+}
+
+.item-named {
+  background-color: #e74c3c;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.container-placement {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 100px);
+  gap: 10px;
+}
+
+.item-placement {
+  background-color: #27ae60;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.container-auto {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 100px;
+  gap: 10px;
+}
+
+.item-auto:nth-child(2) {
+  grid-column: span 2;
+}
+
+.container-repeat {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr) 200px 1fr;
+  grid-template-rows: repeat(3, 100px);
+  gap: 10px;
+}
+
+.item-repeat {
+  background-color: #f1c40f;
+  color: #333;
+  padding: 10px;
+  text-align: center;
+}
+
+.container-areas {
+  display: grid;
+  grid-template-areas:
+    "header header header"
+    "sidebar content content"
+    "footer footer footer";
+}
+
+.header {
+  grid-area: header;
+  background-color: #9b59b6;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.sidebar {
+  grid-area: sidebar;
+  background-color: #e67e22;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.content {
+  grid-area: content;
+  background-color: #34495e;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.footer {
+  grid-area: footer;
+  background-color: #95a5a6;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+
+.item-sizing {
+  width: 200px;
+  height: 150px;
+  background-color: #e74c3c;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+  justify-self: center;
+  align-self: center;
+}

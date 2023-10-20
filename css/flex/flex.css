@@ -1,0 +1,81 @@
+/* flex.css */
+
+/* Flex Container 1 - flex-grow */
+.container-1 {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Flex Container 2 - flex-shrink */
+.container-2 {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Flex Container 3 - flex-basis */
+.container-3 {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Flex Container 4 - flex-grow, flex-shrink, flex-basis */
+.container-4 {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+/* Flex Items with Different Properties */
+
+/* Container 1 - flex-grow */
+.item-grow-1 {
+	width: 100px;
+	height: 100px;
+	background-color: #3498db;
+	color: #fff;
+	text-align: center;
+	line-height: 100px;
+	flex-grow: 1;
+}
+
+/* Container 2 - flex-shrink */
+.item-shrink-2 {
+	width: 150px;
+	height: 100px;
+	background-color: #e74c3c;
+	color: #fff;
+	text-align: center;
+	line-height: 100px;
+	flex-shrink: 2;
+}
+
+/* Container 3 - flex-basis */
+.item-basis-3 {
+	width: 200px;
+	height: 100px;
+	background-color: #27ae60;
+	color: #fff;
+	text-align: center;
+	line-height: 100px;
+	flex-basis: 50px;
+}
+
+/* Container 4 - flex-grow, flex-shrink, flex-basis */
+.item-combined-4 {
+	width: 150px;
+	height: 100px;
+	background-color: #f1c40f;
+	color: #333;
+	text-align: center;
+	line-height: 100px;
+	flex-grow: 2;
+	flex-shrink: 1;
+	flex-basis: 100px;
+}
